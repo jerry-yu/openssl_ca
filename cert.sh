@@ -20,9 +20,9 @@ COMMAND=$1
 
 if [ $# -lt 1 ];then
     echo "input your nodes you wanted\n"
-    echo "like this: ./gen_ca.sh create 0 1 2 3"
-    echo "like this: ./gen_ca.sh revoke 0 1"
-    echo "like this: ./gen_ca.sh verify 0 1"
+    echo "like this: ./cert.sh create 0 1 2 3"
+    echo "like this: ./cert.sh revoke 0 1"
+    echo "like this: ./cert.sh verify 0 1"
     exit 0
 fi
 
@@ -38,6 +38,7 @@ create() {
 		echo 01 > crlnumber
 	fi
 	touch index.txt
+	touch index.txt.attr
 
 	if [ ! -f $rootca.$key ]||[ ! -f $rootca.$crt ] ;then
 	    openssl req -newkey rsa:$key_bits -nodes  -keyout $rootca.$key -days $days -x509 -out $rootca.$crt -subj $subj
@@ -54,8 +55,11 @@ create() {
 
 	openssl ca -batch -config $conf -notext -in ${node}.$csr -out ${node}.$crt
 
-	openssl pkcs12 -export -out ${node}/${pfx} -inkey $node.$key -in $node.$crt -chain -CAfile $rootca.$crt -password pass:${password}
+	#openssl pkcs12 -export -out ${node}/${pfx} -inkey $node.$key -in $node.$crt -chain -CAfile $rootca.$crt -password pass:${password}
+	cat $base.$crt $node.$crt > tmp.crt
+	openssl pkcs12 -export -out ${node}/${pfx} -inkey $node.$key -in $node.$crt -chain -CAfile tmp.crt -password pass:${password}
 
+	rm -f tmp.crt
 	cp $node.* $node/ 
 	cp -f $rootca.$crt ./$node
 
